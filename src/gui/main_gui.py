@@ -1,9 +1,9 @@
 import tkinter as tk
-from gui.scan_section import scan_section
-from gui.quarantine_section import quarantine_section
-from gui.reports_section import report_section
-from gui.update_section import update_section
-from gui.guide_section import guide_section
+from src.gui.scan_section import scan_section
+from src.gui.quarantine_section import quarantine_section
+from src.gui.reports_section import report_section
+from src.gui.update_section import update_section
+from src.gui.guide_section import guide_section
 
 # Créer la fenêtre principale
 root = tk.Tk()
