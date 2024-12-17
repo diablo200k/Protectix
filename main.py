@@ -1,5 +1,10 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog, messagebox
+from src.gui.reports_section import reports_section as external_reports_section
+from src.gui.scan_section import scan_section
+from src.gui.quarantine_section import quarantine_section
+from src.gui.reports_section import reports_section
 
 # Créer la fenêtre principale
 root = tk.Tk()
@@ -38,7 +43,7 @@ def show_section(section_name):
     elif section_name == "Quarantaine":
         quarantine_section()
     elif section_name == "Rapports":
-        report_section()
+        external_reports_section(main_frame)
     elif section_name == "Mise à jour":
         update_section()
     elif section_name == "Guide de sécurité":
@@ -54,8 +59,9 @@ def scan_section():
         if folder_path:
             messagebox.showinfo("Scan lancé", f"Scan en cours pour le dossier : {folder_path}")
 
-    scan_button = tk.Button(main_frame, text="Sélectionner un dossier à scanner", command=select_folder, bg="#3498db", fg="white", font=("Arial", 12), width=25)
+    scan_button = ttk.Button(main_frame, text="Sélectionner un dossier à scanner", command=select_folder)
     scan_button.pack(pady=10)
+    
 
 # Fonctionnalité : Quarantaine
 def quarantine_section():
@@ -68,7 +74,7 @@ def quarantine_section():
         file_label.pack(pady=5)
 
 # Fonctionnalité : Rapports
-def report_section():
+def local_report_section():
     label = tk.Label(main_frame, text="Visualisez les rapports d'analyse précédents :", bg="white", font=("Arial", 14))
     label.pack(pady=20)
     message = tk.Text(main_frame, wrap="word", height=15, width=50)
