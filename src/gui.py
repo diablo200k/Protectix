@@ -6,13 +6,11 @@ from utils.file_scanner import scan_directory
 from utils.quarantine_manager import list_quarantine, restore_file
 from utils.report_generator import generate_report, list_reports
 
-
 def show_section(frame):
     """Affiche la section sélectionnée."""
     for widget in main_frame.winfo_children():
         widget.destroy()
     frame()
-
 
 def scan_section():
     """Section pour scanner un dossier spécifique."""
@@ -33,51 +31,54 @@ def scan_section():
     # Bouton pour sélectionner un dossier
     tk.Button(main_frame, text="Sélectionner un dossier", command=lambda: scan_folder(progress, file_label, threat_label)).pack(pady=10)
 
-
 def scan_folder(progress, file_label, threat_label):
-    """Effectue un scan d'un dossier avec optimisation."""
-    folder = filedialog.askdirectory()
-    if folder:
-        files = []
-        for root, _, filenames in os.walk(folder):
-            for file in filenames:
-                files.append(os.path.join(root, file))
+    """
+    Fonction appelée lorsqu'un dossier est sélectionné pour analyse.
+    """
+    folder_path = filedialog.askdirectory()
+    if not folder_path:
+        return
 
-        total_files = len(files)
-        if total_files == 0:
-            messagebox.showinfo("Scan terminé", "Aucun fichier à analyser.")
-            return
+    # Mise à jour de l'interface utilisateur
+    file_label.config(text=f"Dossier sélectionné : {folder_path}")
+    progress['value'] = 0
+    threat_label.config(text="Menaces détectées : 0")
 
-        progress["maximum"] = total_files
-        threats = []
+    # Analyse du dossier
+    threats = scan_directory(folder_path)
 
-        def process_file(file_path):
-            """Analyse un fichier et retourne les menaces détectées."""
-            return scan_directory(file_path)
+    # Mise à jour de l'interface utilisateur avec les résultats
+    if threats:
+        threat_label.config(text=f"Menaces détectées : {len(threats)}")
+        for threat in threats:
+            print(f"[ALERTE] 🚨 Menace détectée : {threat['file']} -> {threat['threat']}")
+    else:
+        threat_label.config(text="Aucune menace détectée.")
 
-        # Multithreading pour analyser les fichiers
-        with ThreadPoolExecutor() as executor:
-            for i, result in enumerate(executor.map(process_file, files)):
-                progress["value"] = i + 1
-                progress.update()
+    progress['value'] = 100
 
-                if result:
-                    threats.extend(result)
-                    threat_label.config(text=f"Menaces détectées : {len(threats)}")
-                    threat_label.update()
+    def process_file(file_path):
+        """Analyse un fichier avec VirusTotal et la base locale."""
+        return scan_directory(file_path)
 
-                file_label.config(text=f"Fichier en cours d'analyse : {files[i]}")
-                file_label.update()
+    with ThreadPoolExecutor() as executor:
+        for i, result in enumerate(executor.map(process_file, files)):
+            progress["value"] = i + 1
+            progress.update()
 
-        progress["value"] = total_files
-        file_label.config(text="Scan terminé.")
+            if result and (result["malicious"] > 0 or result["suspicious"] > 0):
+                threats.append(result)
+                threat_label.config(text=f"Menaces détectées : {len(threats)}")
+                threat_label.update()
 
-        if threats:
-            report_path = generate_report(threats)
-            messagebox.showinfo("Scan terminé", f"Menaces détectées : {len(threats)}\nRapport : {report_path}")
-        else:
-            messagebox.showinfo("Scan terminé", "Aucune menace détectée.")
+    progress["value"] = total_files
+    file_label.config(text="Scan terminé.")
 
+    if threats:
+        report_path = generate_report(threats)
+        messagebox.showinfo("Scan terminé", f"Menaces détectées : {len(threats)}\nRapport : {report_path}")
+    else:
+        messagebox.showinfo("Scan terminé", "Aucune menace détectée.")
 
 def full_scan_section():
     """Section pour effectuer un scan général de tout le PC."""
@@ -93,7 +94,6 @@ def full_scan_section():
 
     # Bouton pour lancer le scan général
     tk.Button(main_frame, text="Lancer le Scan Général", command=lambda: start_full_scan(progress, threat_label)).pack(pady=10)
-
 
 def start_full_scan(progress, threat_label):
     """Effectue un scan complet de toutes les partitions du PC."""
@@ -114,7 +114,7 @@ def start_full_scan(progress, threat_label):
     threats = []
 
     def process_file(file_path):
-        """Analyse un fichier et retourne les menaces détectées."""
+        """Analyse un fichier avec VirusTotal."""
         return scan_directory(file_path)
 
     with ThreadPoolExecutor() as executor:
@@ -123,7 +123,7 @@ def start_full_scan(progress, threat_label):
             progress.update()
 
             if result:
-                threats.extend(result)
+                threats.append(result)
                 threat_label.config(text=f"Menaces détectées : {len(threats)}")
                 threat_label.update()
 
@@ -134,7 +134,6 @@ def start_full_scan(progress, threat_label):
         messagebox.showinfo("Scan Général Terminé", f"Menaces détectées : {len(threats)}\nRapport : {report_path}")
     else:
         messagebox.showinfo("Scan Général Terminé", "Aucune menace détectée.")
-
 
 def quarantine_section():
     """Section de gestion de la quarantaine."""
@@ -148,7 +147,6 @@ def quarantine_section():
             tk.Label(main_frame, text=file, font=("Arial", 12)).pack()
         tk.Button(main_frame, text="Restaurer", command=lambda: restore_file(files[0])).pack(pady=5)
 
-
 def reports_section():
     """Section de gestion des rapports."""
     tk.Label(main_frame, text="Rapports", font=("Arial", 18, "bold")).pack(pady=10)
@@ -159,7 +157,6 @@ def reports_section():
     else:
         for report in reports:
             tk.Label(main_frame, text=report, font=("Arial", 12), fg="blue", cursor="hand2").pack()
-
 
 # Configuration principale de l'application
 root = tk.Tk()
