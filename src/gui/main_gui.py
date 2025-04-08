@@ -1,54 +1,56 @@
-import tkinter as tk
-from gui.scan_section import scan_section
-from gui.quarantine_section import quarantine_section
-from gui.reports_section import report_section
-from gui.update_section import update_section
-from gui.guide_section import guide_section
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLabel, QStackedWidget, QListWidget
+)
+import sys
 
-# Créer la fenêtre principale
-root = tk.Tk()
-root.title("SecuShield - Antivirus")
-root.geometry("900x600")
+# Importer tes modules
+from gui.scan_section import scan_section_widget
+from gui.quarantine_section import quarantine_section_widget
+from gui.reports_section import report_section_widget
+from gui.update_section import update_section_widget
+from gui.guide_section import guide_section_widget
 
-# Créer une barre latérale
-sidebar = tk.Frame(root, bg="#2c3e50", width=200, height=600)
-sidebar.pack(side="left", fill="y")
+class SecuShieldGUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SecuShield - Antivirus")
+        self.setGeometry(100, 100, 900, 600)
 
-# Contenu principal (section affichée)
-main_frame = tk.Frame(root, bg="white", width=700, height=600)
-main_frame.pack(side="right", expand=True, fill="both")
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
-# Fonction pour afficher les sections
-def show_section(section_name):
-    for widget in main_frame.winfo_children():
-        widget.destroy()
+        self.layout = QHBoxLayout(self.central_widget)
 
-    if section_name == "Scan de fichiers":
-        scan_section(main_frame)
-    elif section_name == "Quarantaine":
-        quarantine_section(main_frame)
-    elif section_name == "Rapports":
-        report_section(main_frame)
-    elif section_name == "Mise à jour":
-        update_section(main_frame)
-    elif section_name == "Guide de sécurité":
-        guide_section(main_frame)
+        # Barre latérale
+        self.sidebar = QListWidget()
+        self.sidebar.addItems([
+            "Scan de fichiers",
+            "Quarantaine",
+            "Rapports",
+            "Mise à jour",
+            "Guide de sécurité"
+        ])
+        self.sidebar.setFixedWidth(200)
+        self.sidebar.setStyleSheet("background-color: #2c3e50; color: white; font-size: 16px;")
+        self.sidebar.currentRowChanged.connect(self.display_section)
 
-# Ajouter des boutons dans la barre latérale
-buttons = [
-    ("Scan de fichiers", lambda: show_section("Scan de fichiers")),
-    ("Quarantaine", lambda: show_section("Quarantaine")),
-    ("Rapports", lambda: show_section("Rapports")),
-    ("Mise à jour", lambda: show_section("Mise à jour")),
-    ("Guide de sécurité", lambda: show_section("Guide de sécurité")),
-]
+        # Zone principale
+        self.stack = QStackedWidget()
+        self.stack.addWidget(scan_section_widget())
+        self.stack.addWidget(quarantine_section_widget())
+        self.stack.addWidget(report_section_widget())
+        self.stack.addWidget(update_section_widget())
+        self.stack.addWidget(guide_section_widget())
 
-for text, command in buttons:
-    button = tk.Button(
-        sidebar, text=text, command=command, bg="#34495e", fg="white", bd=0, height=2, font=("Arial", 12)
-    )
-    button.pack(fill="x")
+        self.layout.addWidget(self.sidebar)
+        self.layout.addWidget(self.stack)
 
-# Afficher la section par défaut
-show_section("Scan de fichiers")
-root.mainloop()
+    def display_section(self, index):
+        self.stack.setCurrentIndex(index)
+
+def run_gui():
+    app = QApplication(sys.argv)
+    window = SecuShieldGUI()
+    window.show()
+    sys.exit(app.exec_())

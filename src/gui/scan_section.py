@@ -1,25 +1,34 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from utils.file_scanner import scan_folder
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox
+)
+from utils.file_scanner import scan_directory as scan_folder
 
-def scan_section(main_frame):
-    label = tk.Label(main_frame, text="Analysez vos fichiers ou dossiers pour détecter les menaces.", bg="white", font=("Arial", 14))
-    label.pack(pady=20)
+
+def scan_section_widget():
+    widget = QWidget()
+    layout = QVBoxLayout()
+
+    title_label = QLabel("Analysez vos fichiers ou dossiers pour détecter les menaces.")
+    title_label.setStyleSheet("font-size: 16px;")
+    layout.addWidget(title_label)
 
     def select_folder():
-        folder_path = filedialog.askdirectory()
+        folder_path = QFileDialog.getExistingDirectory(widget, "Sélectionner un dossier")
         if folder_path:
             threats = scan_folder(folder_path)
             if threats:
-                messagebox.showwarning("Menaces détectées", f"{len(threats)} menaces détectées ! Consultez les rapports.")
-                # Afficher les menaces dans l'interface
-                result_label = tk.Label(main_frame, text="Menaces détectées :", bg="white", font=("Arial", 14))
-                result_label.pack(pady=10)
+                QMessageBox.warning(widget, "Menaces détectées", f"{len(threats)} menaces détectées ! Consultez les rapports.")
+                layout.addWidget(QLabel("Menaces détectées :"))
                 for threat in threats:
-                    threat_label = tk.Label(main_frame, text=f"- {threat['file']} ({threat['threat']})", bg="white", font=("Arial", 12))
-                    threat_label.pack(pady=5)
+                    threat_label = QLabel(f"- {threat['file']} ({threat['threat']})")
+                    layout.addWidget(threat_label)
             else:
-                messagebox.showinfo("Aucune menace", "Aucune menace détectée dans le dossier scanné.")
+                QMessageBox.information(widget, "Aucune menace", "Aucune menace détectée dans le dossier scanné.")
 
-    scan_button = tk.Button(main_frame, text="Sélectionner un dossier à scanner", command=select_folder, bg="#3498db", fg="white", font=("Arial", 12), width=25)
-    scan_button.pack(pady=10)
+    scan_btn = QPushButton("Sélectionner un dossier à scanner")
+    scan_btn.setStyleSheet("background-color: #3498db; color: white; font-size: 14px; padding: 6px 10px;")
+    scan_btn.clicked.connect(select_folder)
+    layout.addWidget(scan_btn)
+
+    widget.setLayout(layout)
+    return widget

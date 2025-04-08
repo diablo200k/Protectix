@@ -1,10 +1,11 @@
 import sys
 import os
 
-# Ajouter le dossier parent au chemin Python
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Ajouter src/ au chemin Python pour les imports internes
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), ".")))
 
-from gui import *  # Importer le module `gui` de `src`
+# Importer la fonction qui lance l'interface depuis main_gui.py
+from gui.main_gui import run_gui
 
 if __name__ == "__main__":
-    root.mainloop()
+    run_gui()  # Appelle la fonction qui crée la fenêtre et lance le mainloop
