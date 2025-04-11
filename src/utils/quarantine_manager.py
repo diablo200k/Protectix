@@ -1,8 +1,9 @@
 import os
 import shutil
 
-# Dossier par défaut pour stocker les fichiers en quarantaine
-QUARANTINE_DIR = "../data/quarantine"
+# Définition du dossier de quarantaine en utilisant un chemin absolu
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data"))
+QUARANTINE_DIR = os.path.join(BASE_DIR, "quarantine")
 
 def move_to_quarantine(file_path):
     """
@@ -13,7 +14,8 @@ def move_to_quarantine(file_path):
     if not os.path.exists(QUARANTINE_DIR):
         os.makedirs(QUARANTINE_DIR)
     try:
-        shutil.move(file_path, os.path.join(QUARANTINE_DIR, os.path.basename(file_path)))
+        destination = os.path.join(QUARANTINE_DIR, os.path.basename(file_path))
+        shutil.move(file_path, destination)
         return f"Fichier déplacé en quarantaine : {file_path}"
     except Exception as e:
         return f"Erreur lors du déplacement en quarantaine : {e}"
@@ -29,7 +31,7 @@ def list_quarantine():
 
 def restore_file(file_name):
     """
-    Restaure un fichier depuis la quarantaine vers son emplacement d'origine.
+    Restaure un fichier depuis la quarantaine vers son emplacement d'origine (le répertoire courant).
     :param file_name: Nom du fichier à restaurer
     :return: Message indiquant le résultat de l'opération
     """
