@@ -1,8 +1,9 @@
 import os
 import hashlib
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Set, Dict, List, Optional
+from typing import Set, Dict, List, Optional, Callable
 from utils.quarantine_manager import move_to_quarantine
 import requests
 
@@ -15,10 +16,12 @@ VIRUSTOTAL_API_KEY = "77109c720de712d2c8428753f150ee82a13eac1b4f1a050c8c71605a83
 VT_BASE_URL = "https://www.virustotal.com/api/v3/files/"
 
 # Configuration du logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] %(message)s'
-)
+logger = logging.getLogger("scan")
+logger.setLevel(logging.INFO)
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 def load_md5_signatures() -> Set[str]:
     try:
@@ -32,22 +35,22 @@ def load_md5_signatures() -> Set[str]:
                 if not line or line.startswith('#'):
                     continue
                 if len(line) != 32 or not all(c in '0123456789abcdef' for c in line):
-                    logging.warning("Signature invalide ligne %d: %s", line_number, line)
+                    logger.warning("Signature invalide ligne %d: %s", line_number, line)
                     continue
                 valid_hashes.add(line)
 
             if not valid_hashes:
-                logging.error("Aucune signature valide trouvée dans le fichier")
+                logger.error("Aucune signature valide trouvée dans le fichier")
 
             eicar_hash = "44d88612fea8a8f36de82e1278abb02f"
             if eicar_hash not in valid_hashes:
-                logging.warning("Signature EICAR manquante dans la base de données")
+                logger.warning("Signature EICAR manquante dans la base de données")
 
-            logging.info("%d signatures MD5 chargées", len(valid_hashes))
+            logger.info("%d signatures MD5 chargées", len(valid_hashes))
             return valid_hashes
 
     except Exception as error:
-        logging.error("Erreur de chargement des signatures : %s", str(error))
+        logger.error("Erreur de chargement des signatures : %s", str(error))
         return set()
 
 def calculate_md5(file_path: str) -> Optional[str]:
@@ -58,7 +61,7 @@ def calculate_md5(file_path: str) -> Optional[str]:
                 hasher.update(chunk)
         return hasher.hexdigest()
     except Exception as error:
-        logging.error("Erreur de calcul MD5 pour %s: %s", file_path, str(error))
+        logger.error("Erreur de calcul MD5 pour %s: %s", file_path, str(error))
         return None
 
 def check_virustotal(md5_hash: str) -> Optional[Dict]:
@@ -75,24 +78,28 @@ def check_virustotal(md5_hash: str) -> Optional[Dict]:
             suspicious = stats.get("suspicious", 0)
             return {"malicious": malicious, "suspicious": suspicious, "source": "VirusTotal"}
         else:
-            logging.warning("VirusTotal: réponse %d pour hash %s", response.status_code, md5_hash)
+            logger.warning("VirusTotal: réponse %d pour hash %s", response.status_code, md5_hash)
             return None
     except Exception as e:
-        logging.error("Erreur lors de la requête VirusTotal pour %s: %s", md5_hash, str(e))
+        logger.error("Erreur lors de la requête VirusTotal pour %s: %s", md5_hash, str(e))
         return None
 
-def scan_file(file_path: str, signatures: Set[str]) -> Optional[Dict]:
+def scan_file(file_path: str, signatures: Set[str], index: int, total: int, progress_callback: Optional[Callable] = None) -> Optional[Dict]:
     if not os.path.isfile(file_path):
-        logging.warning("%s n'est pas un fichier valide", file_path)
+        logger.warning("[%d/%d] %s n'est pas un fichier valide", index, total, file_path)
         return None
 
     try:
+        logger.info("[%d/%d] Analyse : %s", index, total, file_path)
+        if progress_callback:
+            progress_callback(index, total, file_path)
+
         file_hash = calculate_md5(file_path)
         if not file_hash:
             return None
 
         if file_hash in signatures:
-            logging.warning("Menace détectée localement : %s", file_path)
+            logger.warning("[%d/%d] Menace détectée localement : %s", index, total, file_path)
             try:
                 quarantine_path = move_to_quarantine(file_path)
                 return {
@@ -102,13 +109,12 @@ def scan_file(file_path: str, signatures: Set[str]) -> Optional[Dict]:
                     'quarantine': quarantine_path
                 }
             except Exception as error:
-                logging.error("Échec quarantaine pour %s: %s", file_path, error)
+                logger.error("Échec quarantaine pour %s: %s", file_path, error)
                 return None
 
-        # Vérification avec VirusTotal
         vt_result = check_virustotal(file_hash)
         if vt_result and (vt_result["malicious"] > 0 or vt_result["suspicious"] > 0):
-            logging.warning("Menace détectée via VirusTotal : %s", file_path)
+            logger.warning("[%d/%d] Menace détectée via VirusTotal : %s", index, total, file_path)
             return {
                 'file': file_path,
                 'hash': file_hash,
@@ -117,66 +123,55 @@ def scan_file(file_path: str, signatures: Set[str]) -> Optional[Dict]:
                 'suspicious': vt_result["suspicious"]
             }
 
+        logger.info("[%d/%d] OK : %s", index, total, file_path)
         return None
 
     except Exception as error:
-        logging.error("Échec analyse de %s: %s", file_path, error)
+        logger.error("Échec analyse de %s: %s", file_path, error)
         return None
 
-def scan_directory(directory):
-    print(f"[DEBUG] 🔎 Scan en cours pour : {directory}")
+def scan_directory(directory, progress_callback: Optional[Callable] = None):
+    logger.info("[DEBUG] 🔎 Scan en cours pour : %s", directory)
 
     signatures = load_md5_signatures()
     if not signatures:
-        print("[ERREUR] ❌ Aucune signature chargée. Vérifiez `Hashes.txt`.")
+        logger.error("[ERREUR] ❌ Aucune signature chargée. Vérifiez `Hashes.txt`.")
         return []
 
     threats = []
     files = []
 
     if os.path.isfile(directory):
-        print(f"[DEBUG] 🔍 Fichier unique à analyser : {directory}")
+        logger.info("[DEBUG] 🔍 Fichier unique à analyser : %s", directory)
         files = [directory]
     elif os.path.isdir(directory):
-        print(f"[DEBUG] 🔍 Scan du dossier : {directory}")
+        logger.info("[DEBUG] 🔍 Scan du dossier : %s", directory)
         for root, _, filenames in os.walk(directory):
             for filename in filenames:
                 file_path = os.path.join(root, filename)
-                print(f"[DEBUG] 📂 Fichier trouvé : {file_path}")
                 files.append(file_path)
     else:
-        print(f"[ERREUR] ❌ Le chemin {directory} n'est ni un fichier ni un répertoire.")
+        logger.error("[ERREUR] ❌ Le chemin %s n'est ni un fichier ni un répertoire.", directory)
         return []
 
     if not files:
-        print(f"[INFO] ❌ Aucun fichier trouvé dans {directory}")
+        logger.info("[INFO] ❌ Aucun fichier trouvé dans %s", directory)
         return []
 
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(lambda f: scan_file(f, signatures), files)
-        threats = [result for result in results if result]
+    total_files = len(files)
+    start_time = time.time()
 
-    print(f"[DEBUG] 🔎 Scan terminé. Menaces détectées : {len(threats)}")
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(scan_file, file, signatures, idx + 1, total_files, progress_callback): file
+            for idx, file in enumerate(files)
+        }
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                threats.append(result)
+
+    elapsed_time = time.time() - start_time
+    logger.info("⏱️ Temps total de scan : %.2f secondes", elapsed_time)
+    logger.info("✅ Scan terminé. Menaces détectées : %d", len(threats))
     return threats
-
-if __name__ == "__main__":
-    try:
-        logging.info("🚀 Démarrage Protectix Antivirus")
-        target_dir = input("Entrez le chemin à analyser: ").strip()
-
-        if not os.path.exists(target_dir):
-            raise ValueError("Chemin spécifié introuvable")
-
-        scan_results = scan_directory(target_dir)
-
-        if scan_results:
-            logging.warning("🚨 %d menaces détectées:", len(scan_results))
-            for threat in scan_results:
-                logging.warning("• %s (MD5: %s)", threat['file'], threat['hash'])
-        else:
-            logging.info("✅ Aucune menace détectée")
-
-    except Exception as error:
-        logging.critical("ERREUR CRITIQUE: %s", error)
-    finally:
-        logging.info("🏁 Fin d'exécution")
