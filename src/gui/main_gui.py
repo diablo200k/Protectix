@@ -12,6 +12,7 @@ from gui.quarantine_section import quarantine_section_widget
 from gui.reports_section import report_section_widget
 from gui.update_section import update_section_widget
 from gui.guide_section import guide_section_widget
+from gui.full_system_scan_widget import full_system_scan_widget
 
 class SecuShieldGUI(QMainWindow):
     def __init__(self):
@@ -70,7 +71,7 @@ class SecuShieldGUI(QMainWindow):
         sidebar_layout.setSpacing(10)
         
         # Header de la barre latérale
-        sidebar_header = QLabel("SecuShield")
+        sidebar_header = QLabel("Protectix")
         sidebar_header.setAlignment(Qt.AlignCenter)
         sidebar_header.setStyleSheet("font-size: 24px; color: #ffffff; font-weight: bold; padding: 20px 0;")
         sidebar_layout.addWidget(sidebar_header)
@@ -80,6 +81,7 @@ class SecuShieldGUI(QMainWindow):
         # Exemple d'éléments avec icônes (décommentez la ligne setIcon si vous disposez d'icônes)
         menu_items = [
             ("Scan de fichiers", "scan_icon.png"),
+            ("Scan complet",          "fullscan_icon.png"), 
             ("Quarantaine", "quarantine_icon.png"),
             ("Rapports", "reports_icon.png"),
             ("Mise à jour", "update_icon.png"),
@@ -99,6 +101,7 @@ class SecuShieldGUI(QMainWindow):
         # --- Création de la zone principale ---
         self.stack = QStackedWidget()
         self.stack.addWidget(scan_section_widget())
+        self.stack.addWidget(full_system_scan_widget())   
         self.stack.addWidget(quarantine_section_widget())
         self.stack.addWidget(report_section_widget())
         self.stack.addWidget(update_section_widget())
