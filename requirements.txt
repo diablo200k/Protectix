@@ -1,1 +1,4 @@
-tk
+PyQt5>=5.15.0
+PyQtChart>=5.15.0
+requests>=2.25.0
+psutil>=5.8.0

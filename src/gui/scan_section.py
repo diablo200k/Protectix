@@ -12,6 +12,8 @@ import logging
 from utils.file_scanner import scan_directory as scan_folder
 # Importer le helper de décision (celui-ci doit être dans src/gui/decision_helper.py)
 from gui.decision_helper import DecisionHelper
+# Importer le générateur de rapports
+from utils.report_generator import ReportGenerator
 
 # ----------------------------------------------------------------------
 # Handler personnalisé pour rediriger les logs dans l'UI
@@ -37,6 +39,7 @@ class ScanWorker(QThread):
         super().__init__(parent)
         self.folder = folder
         self.decision_helper = decision_helper
+        self.threats = []  # Pour stocker les menaces
 
     def run(self):
         # Callback pour mettre à jour la progression
@@ -67,8 +70,8 @@ class ScanWorker(QThread):
             self.decision_helper.decisionMade.disconnect(on_decision)
             return decision
 
-        threats = scan_folder(self.folder, progress_callback, threat_callback)
-        self.scan_finished.emit(threats)
+        self.threats = scan_folder(self.folder, progress_callback, threat_callback)
+        self.scan_finished.emit(self.threats)
 
 # ----------------------------------------------------------------------
 # Fonction de création de la section de scan pour l'interface
@@ -117,11 +120,18 @@ def scan_section_widget():
 
     # Variable pour mémoriser le temps de départ du scan
     scan_start_time = [None]
+    
+    # Variable pour mémoriser le chemin scanné
+    folder_path = [None]
+    
+    # Variable pour mémoriser le nombre total de fichiers
+    total_files = [0]
 
     # Référence au worker pour éviter son ramassage par le garbage collector
     scan_worker = None
 
     def select_folder():
+        nonlocal folder_path
         folder_path = QFileDialog.getExistingDirectory(widget, "Sélectionner un dossier")
         if folder_path:
             # Réinitialisation de l'UI
@@ -142,6 +152,9 @@ def scan_section_widget():
             scan_worker.start()
 
     def on_progress_update(index, total, file_path):
+        # Mettre à jour le nombre total de fichiers
+        total_files[0] = total
+        
         progress_bar.setMaximum(total)
         progress_bar.setValue(index)
         current_file_label.setText(f"Fichier en cours: {file_path}")
@@ -156,12 +169,35 @@ def scan_section_widget():
             time_label.setText("Temps estimé: Calcul en cours...")
 
     def on_scan_finished(threats):
+        """Fonction appelée à la fin du scan."""
+        scan_end_time = time.time()
+        scan_duration = scan_end_time - scan_start_time[0]
+        
+        # Créer les informations de scan pour le rapport
+        scan_info = {
+            "directory": folder_path,
+            "files_scanned": total_files[0],
+            "scan_duration": scan_duration,
+            "start_time": scan_start_time[0],
+            "end_time": scan_end_time
+        }
+        
         if threats:
-            QMessageBox.warning(widget, "Menaces détectées",
-                                f"{len(threats)} menaces détectées ! Consultez les rapports.")
+            # Générer un rapport avec les informations de scan
+            report_paths = ReportGenerator.generate_report(threats, scan_info)
+            
+            QMessageBox.warning(
+                widget, 
+                "Menaces détectées",
+                f"{len(threats)} menaces détectées ! Un rapport a été généré.\n"
+                f"Vous pouvez consulter le rapport dans la section Rapports."
+            )
         else:
-            QMessageBox.information(widget, "Aucune menace",
-                                    "Aucune menace détectée dans le dossier scanné.")
+            QMessageBox.information(
+                widget, 
+                "Aucune menace",
+                "Aucune menace détectée dans le dossier scanné."
+            )
 
     scan_btn.clicked.connect(select_folder)
     widget.setLayout(layout)
