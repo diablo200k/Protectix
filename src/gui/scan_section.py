@@ -8,14 +8,10 @@ from PyQt5.QtCore import QThread, pyqtSignal, Qt, Q_ARG, QEventLoop, QTimer, QMe
 import time
 import logging
 
-# Importer la fonction de scan depuis vos utils
 from utils.file_scanner import scan_directory as scan_folder
-# Importer le helper de décision (celui-ci doit être dans src/gui/decision_helper.py)
 from gui.decision_helper import DecisionHelper
-# Importer le générateur de rapports
 from utils.report_generator import ReportGenerator
 
-# ----------------------------------------------------------------------
 # Handler personnalisé pour rediriger les logs dans l'UI
 from PyQt5.QtCore import QObject
 class LogEmitterHandler(logging.Handler, QObject):
@@ -29,7 +25,6 @@ class LogEmitterHandler(logging.Handler, QObject):
         msg = self.format(record)
         self.log_signal.emit(msg)
 
-# ----------------------------------------------------------------------
 # Worker pour le scan dans un thread séparé
 class ScanWorker(QThread):
     progress_update = pyqtSignal(int, int, str)
@@ -46,7 +41,6 @@ class ScanWorker(QThread):
         def progress_callback(index, total, file_path):
             self.progress_update.emit(index, total, file_path)
 
-        # Callback de menace : on utilise un QEventLoop et le signal decisionMade
         def threat_callback(file_path, threat_source):
             decision = None
             loop = QEventLoop()
@@ -73,7 +67,6 @@ class ScanWorker(QThread):
         self.threats = scan_folder(self.folder, progress_callback, threat_callback)
         self.scan_finished.emit(self.threats)
 
-# ----------------------------------------------------------------------
 # Fonction de création de la section de scan pour l'interface
 def scan_section_widget():
     widget = QWidget()
@@ -87,18 +80,16 @@ def scan_section_widget():
     # Barre de progression
     progress_bar = QProgressBar()
     progress_bar.setMinimum(0)
-    progress_bar.setMaximum(100)  # La valeur max sera ajustée lors du scan
+    progress_bar.setMaximum(100)
     layout.addWidget(progress_bar)
 
     # Label pour afficher le temps restant estimé
     time_label = QLabel("Temps estimé: N/A")
     layout.addWidget(time_label)
 
-    # Label pour afficher le fichier en cours d'analyse
     current_file_label = QLabel("Fichier en cours: N/A")
     layout.addWidget(current_file_label)
 
-    # Zone d'affichage des logs
     log_text = QTextEdit()
     log_text.setReadOnly(True)
     log_text.setPlaceholderText("Logs du scan...")
@@ -118,16 +109,12 @@ def scan_section_widget():
     # Connexion du signal de logs pour affichage en temps réel
     log_handler.log_signal.connect(lambda msg: log_text.append(msg))
 
-    # Variable pour mémoriser le temps de départ du scan
     scan_start_time = [None]
     
-    # Variable pour mémoriser le chemin scanné
     folder_path = [None]
     
-    # Variable pour mémoriser le nombre total de fichiers
     total_files = [0]
 
-    # Référence au worker pour éviter son ramassage par le garbage collector
     scan_worker = None
 
     def select_folder():
