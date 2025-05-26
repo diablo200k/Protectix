@@ -175,14 +175,12 @@ class StatsViewerWidget(QWidget):
                         filtered.append(report)
             
             except:
-                # Ignorer les rapports avec un format de date invalide
                 pass
         
         return filtered
     
     def generate_threats_chart(self, reports):
         """Génère un graphique de l'évolution des menaces détectées."""
-        # Trier les rapports par date
         sorted_reports = sorted(reports, key=lambda r: r.get("timestamp", ""))
         
         # Préparer les données pour le graphique linéaire
@@ -204,15 +202,10 @@ class StatsViewerWidget(QWidget):
                 threat_count = report.get("threat_count", 0)
                 cumulative_threats += threat_count
                 
-                # Option 1: Afficher le cumul des menaces
-                # line_series.append(report_date.toMSecsSinceEpoch(), cumulative_threats)
-                
-                # Option 2: Afficher chaque rapport séparément
                 line_series.append(report_date.toMSecsSinceEpoch(), threat_count)
                 
                 dates.append(timestamp.strftime("%d/%m/%Y"))
             except:
-                # Ignorer les rapports avec un format de date invalide
                 pass
         
         if not line_series.count():
@@ -271,7 +264,6 @@ class StatsViewerWidget(QWidget):
     
     def generate_scans_chart(self, reports):
         """Génère un graphique de l'activité de scan."""
-        # Calculer le nombre de scans par jour
         scans_by_day = {}
         
         for report in reports:
@@ -284,7 +276,6 @@ class StatsViewerWidget(QWidget):
                 else:
                     scans_by_day[date_key] = 1
             except:
-                # Ignorer les rapports avec un format de date invalide
                 pass
         
         if not scans_by_day:
@@ -372,7 +363,6 @@ class StatsViewerWidget(QWidget):
     
     def generate_sources_chart(self, reports):
         """Génère un graphique des sources de menaces."""
-        # Calculer le nombre de menaces par source
         threats_by_source = {}
         
         for report in reports:
@@ -403,7 +393,6 @@ class StatsViewerWidget(QWidget):
             slice = series.append(source, count)
             slice.setLabelVisible(True)
             
-            # Définir les couleurs selon la source
             if source.lower() == "virustotal":
                 slice.setColor(QColor("#3498db"))
             elif source.lower() == "local":
@@ -428,7 +417,7 @@ class StatsViewerWidget(QWidget):
         
         self.sources_chart_layout.addWidget(chart_view)
         
-        # Types de fichiers infectés (extension)
+        # Types de fichiers infectés
         infected_extensions = {}
         
         for report in reports:
