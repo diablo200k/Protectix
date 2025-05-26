@@ -1,7 +1,6 @@
 import requests
 import hashlib
 
-# Remplace ici par ta clé API
 API_KEY = "77109c720de712d2c8428753f150ee82a13eac1b4f1a050c8c71605a83d20a80"
 VT_URL = "https://www.virustotal.com/api/v3/files"
 
