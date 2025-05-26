@@ -31,7 +31,7 @@ class StatsCard(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         
-        # Icône (simplifiée en texte pour ce prototype)
+        # Icône
         icon_label = QLabel(icon_text)
         icon_label.setStyleSheet(f"""
             font-size: 24px;
@@ -67,26 +67,25 @@ def dashboard_section_widget():
     header.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 10px;")
     layout.addWidget(header)
     
-    # Date et heure actuelles
+    # Date et heure
     date_time = QLabel()
     date_time.setStyleSheet("font-size: 14px; color: #7f8c8d; margin-bottom: 20px;")
     layout.addWidget(date_time)
     
-    # Mise à jour de l'heure toutes les secondes
     def update_datetime():
         current = QDateTime.currentDateTime()
         date_time.setText(current.toString("dddd d MMMM yyyy, hh:mm:ss"))
     
     timer = QTimer(widget)
     timer.timeout.connect(update_datetime)
-    timer.start(1000)  # Mise à jour chaque seconde
+    timer.start(1000)
     update_datetime()  # Initialisation
     
     # Widgets de statistiques dans une grille
     stats_grid = QGridLayout()
     stats_grid.setSpacing(15)
     
-    # Récupérer les rapports pour les statistiques
+    # Récupérer les rapports pour les stats
     reports = ReportGenerator.list_reports()
     
     # Calculer le nombre total de menaces détectées
@@ -96,20 +95,19 @@ def dashboard_section_widget():
     last_scan_date = "Jamais"
     if reports:
         try:
-            # Trier les rapports par date (le premier est le plus récent)
+            # Trier les rapports par date
             last_timestamp = reports[0].get('timestamp', '')
             last_scan_datetime = datetime.fromisoformat(last_timestamp)
             last_scan_date = last_scan_datetime.strftime("%d/%m/%Y %H:%M")
         except:
             pass
     
-    # Récupérer les fichiers en quarantaine
+    # Récup les fichiers en quarantaine
     quarantine_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data/quarantine"))
     quarantine_count = 0
     if os.path.exists(quarantine_dir):
         quarantine_count = len(os.listdir(quarantine_dir))
     
-    # Ajouter les cartes de statistiques
     stats_grid.addWidget(StatsCard("Menaces détectées", total_threats, "🔍", "#e74c3c"), 0, 0)
     stats_grid.addWidget(StatsCard("En quarantaine", quarantine_count, "🔒", "#f39c12"), 0, 1)
     stats_grid.addWidget(StatsCard("Scans effectués", len(reports), "📊", "#2ecc71"), 0, 2)
@@ -181,7 +179,6 @@ def dashboard_section_widget():
         }
     """)
     
-    # Ajouter les boutons au layout
     buttons_layout.addWidget(scan_btn)
     buttons_layout.addWidget(update_btn)
     buttons_layout.addWidget(quarantine_btn)
@@ -191,18 +188,13 @@ def dashboard_section_widget():
     # Ajouter un espace en fin de layout
     layout.addStretch()
     
-    # Connexion des boutons aux actions
     def on_scan_btn_clicked():
-        # Ici, vous pouvez rediriger vers la section scan
-        # ou déclencher directement un scan rapide
         pass
     
     def on_update_btn_clicked():
-        # Déclencher une mise à jour des signatures
         pass
     
     def on_quarantine_btn_clicked():
-        # Rediriger vers la section quarantaine
         pass
     
     scan_btn.clicked.connect(on_scan_btn_clicked)
