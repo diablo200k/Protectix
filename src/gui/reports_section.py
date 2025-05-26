@@ -10,7 +10,7 @@ import webbrowser
 import shutil
 from datetime import datetime
 
-# Importer la classe ReportGenerator au lieu des fonctions simples
+# Importer la classe ReportGenerator
 from utils.report_generator import ReportGenerator
 
 class ReportSectionWidget(QWidget):
@@ -164,7 +164,6 @@ class ReportSectionWidget(QWidget):
             except:
                 date_str = "Date inconnue"
             
-            # Créer un item avec le format "Date - Menaces détectées"
             item_text = f"{date_str} - {report['threat_count']} menace(s)"
             item = QListWidgetItem(item_text)
             item.setData(Qt.UserRole, report["id"])  # Stocker l'ID du rapport dans les données utilisateur
@@ -344,7 +343,6 @@ class ReportSectionWidget(QWidget):
         context_menu.addSeparator()
         context_menu.addAction(delete_action)
         
-        # Afficher le menu
         context_menu.exec_(self.report_list.mapToGlobal(position))
 
 
