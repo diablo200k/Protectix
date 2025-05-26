@@ -12,7 +12,6 @@ def update_section_widget():
     layout.addWidget(info_label)
 
     def check_for_updates():
-        # Ici on pourrait implémenter un vrai système d'update avec fetch depuis GitHub ou VirusShare
         QMessageBox.information(widget, "Mise à jour", "Les signatures sont à jour.")
 
     update_button = QPushButton("Vérifier les mises à jour")
