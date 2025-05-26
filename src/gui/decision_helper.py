@@ -1,4 +1,3 @@
-# src/gui/decision_helper.py
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
 
