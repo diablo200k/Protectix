@@ -37,9 +37,7 @@ class ThemeSwitcher:
         self.theme_menu.addAction(self.dark_action)
         
         # Ajouter le menu à la barre de menus
-        # Si la fenêtre principale n'a pas de barre de menus, créez-en une d'abord
         if not hasattr(self.main_window, 'menuBar'):
-            # Vous devrez ajouter manuellement le menu au layout approprié
             pass
         else:
             self.main_window.menuBar().addMenu(self.theme_menu)
