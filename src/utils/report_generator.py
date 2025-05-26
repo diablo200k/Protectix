@@ -6,7 +6,7 @@ import psutil
 import time
 import html
 
-# Utilisation d'un chemin absolu pour éviter les problèmes de chemin relatif
+# Utilisation d'un chemin absolu pour éviter les problèmes
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data"))
 REPORT_DIR = os.path.join(BASE_DIR, "reports")
 
