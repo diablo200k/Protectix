@@ -6,6 +6,8 @@ VT_URL = "https://www.virustotal.com/api/v3/files"
 
 def calculate_sha256(file_path):
     """Calcule le hash SHA-256 d'un fichier."""
+    # Lit et met à jour le hachage par blocs
+    # Retourne le haché final en hexadécimal
     hasher = hashlib.sha256()
     try:
         with open(file_path, "rb") as file:
@@ -18,6 +20,8 @@ def calculate_sha256(file_path):
 
 def scan_file_virustotal(file_path):
     """Analyse un fichier avec l'API de VirusTotal."""
+    # Calcule le hash SHA-256 pour identifier le fichier
+    # Retourne les statistiques d’analyse s’il est trouvé
     file_hash = calculate_sha256(file_path)
     if not file_hash:
         return None
@@ -46,6 +50,8 @@ def scan_file_virustotal(file_path):
 
 def upload_file_virustotal(file_path):
     """Upload un fichier vers VirusTotal pour une analyse complète."""
+    # Effectue la requête POST vers l'API pour uploader le fichier
+    # Retourne le résultat JSON si succès, sinon affiche l'erreur
     headers = {"x-apikey": API_KEY}
     with open(file_path, "rb") as file:
         files = {"file": (file_path, file)}
