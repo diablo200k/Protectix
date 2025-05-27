@@ -11,7 +11,6 @@ import requests
 import time
 import psutil
 
-# Clé API VirusTotal
 VIRUSTOTAL_API_KEY = "77109c720de712d2c8428753f150ee82a13eac1b4f1a050c8c71605a83d20a80"
 VT_HEADERS = {"x-apikey": VIRUSTOTAL_API_KEY}
 
@@ -24,6 +23,7 @@ class VirusTotalScanner(QThread):
         self.files_list = files_list
         self._running = True
 
+    # Lance le scan des fichiers via VirusTotal
     def run(self):
         for path in self.files_list:
             if not self._running:
@@ -56,15 +56,17 @@ class VirusTotalScanner(QThread):
                         )
                         stats = rep.json().get("data", {}).get("attributes", {}).get("stats", {})
                         infected = stats.get("malicious", 0) > 0
-                time.sleep(15)
+                time.sleep(15)  # Attente entre les requêtes pour respecter les limites de l'API
             except Exception:
                 infected = False
             self.file_scanned.emit(path, infected)
         self.finished_scanning.emit()
 
+    # Stoppe proprement le thread de scan
     def stop(self):
         self._running = False
 
+    # Calcule le hash SHA-256 d’un fichier pour l’identifier
     @staticmethod
     def compute_hash(path):
         h = hashlib.sha256()
@@ -76,7 +78,7 @@ class VirusTotalScanner(QThread):
                 h.update(chunk)
         return h.hexdigest()
 
-
+# Crée et configure l’interface graphique du scanner de fichiers
 def full_system_scan_widget():
     widget = QWidget()
     layout = QVBoxLayout(widget)
@@ -109,6 +111,7 @@ def full_system_scan_widget():
     browse_btn = QPushButton("Parcourir...")
     browse_btn.setMaximumWidth(100)
 
+    # Remplit la liste des chemins disponibles automatiquement
     def populate_paths():
         path_combo.clear()
         paths = []
@@ -127,6 +130,7 @@ def full_system_scan_widget():
 
     populate_paths()
 
+    # Ouvre un explorateur pour choisir un répertoire
     def browse_directory():
         d = QFileDialog.getExistingDirectory(widget, "Sélectionner le répertoire à scanner")
         if d:
@@ -160,7 +164,7 @@ def full_system_scan_widget():
 
     log_output = QTextEdit()
     log_output.setReadOnly(True)
-    log_output.setFont(QFont("Consolas", 9))
+    log_output.setFont(QFont("Consolas", 9))  # Utilise une police type console pour une meilleure lisibilité
     layout.addWidget(log_output)
 
     btn_layout = QHBoxLayout()
@@ -175,14 +179,16 @@ def full_system_scan_widget():
     scan_start_time = 0
     files_scanned = 0
     infected_files = 0
-    stats_timer = QTimer()
+    stats_timer = QTimer()  # Timer utilisé pour mettre à jour le temps écoulé pendant le scan
     widget.scanner = None
 
+    # Ajoute une ligne au journal du scan
     def append_log(text, color="#ecf0f1"):
         log_output.moveCursor(QTextCursor.End)
         log_output.insertHtml(f'<span style="color: {color};">{text}</span>')
         log_output.moveCursor(QTextCursor.End)
 
+    # Met à jour le temps écoulé pendant le scan
     def update_stats():
         nonlocal scan_start_time
         if scan_start_time:
@@ -192,6 +198,7 @@ def full_system_scan_widget():
 
     stats_timer.timeout.connect(update_stats)
 
+    # Gère l’affichage après le scan d’un fichier
     def on_file_scanned(path, infected):
         nonlocal files_scanned, infected_files
         files_scanned += 1
@@ -203,6 +210,7 @@ def full_system_scan_widget():
         else:
             append_log(f"{path} : OK\n")
 
+    # Affiche un message quand le scan est terminé
     def on_finished_scanning():
         nonlocal scan_start_time
         stats_timer.stop()
@@ -217,6 +225,7 @@ def full_system_scan_widget():
             f"✅ Scan terminé en {m:02d}:{s:02d}\n{files_scanned} fichiers scannés, {infected_files} infectés."
         )
 
+    # Démarre le scan en lançant le thread
     def start_scan():
         nonlocal scan_start_time, files_scanned, infected_files
         scan_path = path_combo.currentText().strip()
@@ -232,7 +241,7 @@ def full_system_scan_widget():
         progress_bar.setVisible(True)
         scan_btn.setEnabled(False)
         stop_btn.setEnabled(True)
-        # Collect files
+        # Collecte les fichiers à scanner selon l’option récursive ou non
         files_list = []
         if recursive_cb.isChecked():
             for root, dirs, files in os.walk(scan_path):
@@ -243,12 +252,13 @@ def full_system_scan_widget():
                 p = os.path.join(scan_path, f)
                 if os.path.isfile(p):
                     files_list.append(p)
-        # Instantiate and start scanner
+        # Lance le thread de scan avec la liste des fichiers
         widget.scanner = VirusTotalScanner(files_list)
         widget.scanner.file_scanned.connect(on_file_scanned)
         widget.scanner.finished_scanning.connect(on_finished_scanning)
         widget.scanner.start()
 
+    # Stoppe le scan en cours proprement
     def stop_scan():
         if widget.scanner and widget.scanner.isRunning():
             widget.scanner.stop()
